@@ -1,36 +1,71 @@
-# main.py
-
 import flet as ft
-from styles import button_style, text_heading_style, container_card_style, app_theme
+from styles import (
+    app_theme,
+    page_background_style,
+    heading_large_style,
+    heading_medium_style,
+    body_text_style,
+    caption_text_style,
+    primary_button_style,
+    outline_button_style,
+    text_button_style,
+    card_container_style,
+    text_input_style,
+    image_card_container_style,
+    ACCENT_COLOR,
+    PRIMARY_COLOR
+)
 
 def main(page: ft.Page):
-    page.title = "Mi App con Estilos Separados"
+    page.title = "App Móvil Vistosa con Flet"
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
-
-    # Aplicar tema si lo definiste
+    page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
+    
     page.theme = app_theme()
+    page.update()
+    
+    page.bgcolor = page_background_style()["bgcolor"]
+
+    page.appbar = ft.AppBar(
+        bgcolor=ft.Colors.ORANGE_700,
+        toolbar_height=50, # <--- ¡CAMBIO AQUÍ! Reducido a 50
+        elevation=2,
+        
+        leading=ft.Container(
+            content=ft.Row(
+                [
+                    ft.Text(
+                        "La Tribu",
+                        style=ft.TextStyle(
+                            size=18, # Mantener este tamaño, ya sabemos que funciona
+                            weight=heading_medium_style().weight,
+                            color=ft.Colors.WHITE,
+                        ),
+                        no_wrap=True,
+                    ),
+                ],
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+            padding=ft.padding.only(left=20, right=5),
+            alignment=ft.alignment.center_left,
+        ),
+        actions=[
+            # Contenido de la derecha (actualmente vacío)
+        ]
+    )
 
     page.add(
-        ft.Text(
-            "¡Hola, Flet!",
-            style=text_heading_style(), # Aplicando un estilo de texto
-        ),
-        ft.ElevatedButton(
-            "Haz clic",
-            style=button_style(),  # Aplicando un estilo de botón
-            on_click=lambda e: print("Botón clickeado"),
-        ),
-        ft.Container(
-            content=ft.Column(
-                [
-                    ft.Text("Contenido de la tarjeta", size=16),
-                    ft.ElevatedButton("Más info"),
-                ],
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER
-            ),
-            **container_card_style(), # Usando el operador ** para desempaquetar el diccionario
+        ft.Column(
+            [
+                # Contenido de la página (actualmente vacío)
+            ],
+            scroll=ft.ScrollMode.ADAPTIVE,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            expand=True
         )
     )
+
+    page.update()
 
 if __name__ == "__main__":
     ft.app(target=main)
