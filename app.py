@@ -67,10 +67,10 @@ def main(page: ft.Page):
                                 alignment=ft.alignment.center_left,
                             ),
                             actions=[
-                                # Botón para ir al login desde el Home
+                                # Botón para ir al login desde el Home (Icono de Usuario)
                                 ft.IconButton(
-                                    icon=ft.Icons.LOGIN,
-                                    tooltip="Ir a Iniciar Sesión",
+                                    icon=ft.Icons.PERSON_OUTLINE, # O usa ft.Icons.ACCOUNT_CIRCLE, ft.Icons.LOGIN
+                                    tooltip="Iniciar Sesión",
                                     icon_color=ft.Colors.WHITE,
                                     on_click=lambda e: page.go("/login"),
                                 ),
@@ -80,8 +80,8 @@ def main(page: ft.Page):
                         ft.Column(
                             [
                                 ft.Text("¡Bienvenido a La Tribu!", style=heading_large_style()),
-                                ft.Text("Esta es la página de inicio. Te has logueado con éxito.", style=body_text_style()),
-                                ft.Text("Aquí irá el contenido principal de tu aplicación.", style=caption_text_style()),
+                                ft.Text("Esta es la página de inicio.", style=body_text_style()),
+                                ft.Text("Desde aquí puedes ir al login.", style=caption_text_style()),
                             ],
                             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                             alignment=ft.MainAxisAlignment.CENTER,
@@ -111,14 +111,13 @@ def main(page: ft.Page):
             top_view = page.views[-1] # Obtiene la vista anterior
             page.go(top_view.route) # Navega a la ruta de la vista anterior
         else: # Si no hay más vistas, cierra la aplicación o va a una vista predeterminada
-            page.go("/login") # Por ejemplo, si se cierra el home, vuelve al login
-
+            page.go("/") # Si se cierra el login, vuelve al home
 
     page.on_route_change = route_change
     page.on_view_pop = view_pop
 
-    # Inicia la aplicación en la ruta de login por defecto
-    page.go("/login")
+    # Inicia la aplicación en la ruta de HOME por defecto
+    page.go("/")
 
 
 if __name__ == "__main__":
