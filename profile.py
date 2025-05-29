@@ -1,5 +1,7 @@
 # profile.py
 import flet as ft
+import time
+
 from styles import (
     heading_large_style,
     heading_medium_style,
@@ -12,14 +14,14 @@ from styles import (
     PRIMARY_COLOR,
     ACCENT_COLOR
 )
-from db import get_user_by_id, update_user, delete_user 
+from db import get_user_by_id, update_user, delete_user
 
 def ProfileView(page: ft.Page):
     """
     Define la vista para mostrar y editar el perfil del usuario.
     """
-    user_id = page.logged_in_user["id"] 
-    user_data = get_user_by_id(user_id) 
+    user_id = page.logged_in_user["id"]
+    user_data = get_user_by_id(user_id)
 
     if not user_data:
         page.snack_bar = ft.SnackBar(
@@ -29,178 +31,189 @@ def ProfileView(page: ft.Page):
         page.snack_bar.open = True
         page.update()
         page.go("/login")
-        return 
+        return
 
+    # Extraer los datos del usuario. Asumiendo que user_data tiene 8 elementos.
     current_id, current_name, current_lastname1, current_lastname2, \
     current_username, current_email, current_phone, current_password_hash = user_data
 
     # Campos de texto para mostrar/editar la información del usuario
+    # Inicialmente, haremos los campos de solo lectura y el botón de editar los habilitará.
     name_field = ft.TextField(
         label="Nombre",
-        value=current_name,
         **text_input_style(),
-        read_only=True, 
+        value=current_name,
+        width=300,
+        prefix_icon=ft.Icons.PERSON,
+        read_only=True, # Inicia como solo lectura
+        on_change=lambda e: on_field_change(e),
     )
     lastname1_field = ft.TextField(
         label="Primer Apellido",
-        value=current_lastname1,
         **text_input_style(),
-        read_only=True,
+        value=current_lastname1,
+        width=300,
+        prefix_icon=ft.Icons.PERSON_OUTLINE,
+        read_only=True, # Inicia como solo lectura
+        on_change=lambda e: on_field_change(e),
     )
     lastname2_field = ft.TextField(
-        label="Segundo Apellido",
-        value=current_lastname2,
+        label="Segundo Apellido (Opcional)",
         **text_input_style(),
-        read_only=True,
+        value=current_lastname2,
+        width=300,
+        prefix_icon=ft.Icons.PERSON_OUTLINE,
+        read_only=True, # Inicia como solo lectura
+        on_change=lambda e: on_field_change(e),
     )
     username_field = ft.TextField(
         label="Nombre de Usuario",
-        value=current_username,
         **text_input_style(),
-        read_only=True,
+        value=current_username,
+        width=300,
+        prefix_icon=ft.Icons.ACCOUNT_CIRCLE,
+        read_only=True, # Inicia como solo lectura
+        on_change=lambda e: on_field_change(e),
     )
     email_field = ft.TextField(
         label="Email",
-        value=current_email,
         **text_input_style(),
-        read_only=True,
+        value=current_email,
+        width=300,
+        prefix_icon=ft.Icons.EMAIL,
+        keyboard_type=ft.KeyboardType.EMAIL,
+        read_only=True, # Inicia como solo lectura
+        on_change=lambda e: on_field_change(e),
     )
     phone_field = ft.TextField(
-        label="Teléfono",
-        value=current_phone,
+        label="Teléfono (Opcional)",
         **text_input_style(),
-        read_only=True,
+        value=current_phone,
+        width=300,
+        prefix_icon=ft.Icons.PHONE,
+        keyboard_type=ft.KeyboardType.PHONE,
+        read_only=True, # Inicia como solo lectura
+        on_change=lambda e: on_field_change(e),
     )
 
-    # Botones de acción en la vista (estos son los que estarán en la parte inferior de la vista)
     save_button = ft.ElevatedButton(
         "Guardar Cambios",
         style=primary_button_style(),
-        on_click=None, 
-        visible=False, 
+        on_click=None, # Se asignará más abajo
+        visible=False, # Inicia oculto, se muestra al editar
+        disabled=True, # Deshabilitado hasta que haya cambios al editar
     )
+
     cancel_button = ft.OutlinedButton(
         "Cancelar",
-        on_click=None, 
-        visible=False, 
+        style=text_button_style(),
+        on_click=None, # Se asignará más abajo
+        visible=False, # Inicia oculto, se muestra al editar
+        disabled=True, # Deshabilitado hasta que haya cambios al editar
     )
 
-    # Definir los botones que irán en el AppBar
-    back_button_appbar = ft.IconButton( 
-        icon=ft.Icons.ARROW_BACK,
-        tooltip="Volver",
-        icon_color=ft.Colors.WHITE,
-        on_click=lambda e: page.go("/"), 
-        visible=True,
-    )
-
-    edit_button_appbar = ft.IconButton(
+    # Definir los botones aquí para poder referenciarlos en toggle_edit_mode
+    edit_button = ft.IconButton(
         icon=ft.Icons.EDIT,
         tooltip="Editar Perfil",
-        icon_color=ft.Colors.WHITE,
-        on_click=None, 
-        visible=True, 
+        on_click=None, # Se asignará más abajo
+        icon_color=ft.Colors.WHITE
     )
-    delete_button_appbar = ft.IconButton(
+
+    delete_button = ft.IconButton(
         icon=ft.Icons.DELETE,
         tooltip="Eliminar Cuenta",
-        icon_color=ft.Colors.RED_200, 
-        on_click=None, 
-        visible=True, 
-    )
-    save_button_appbar = ft.IconButton(
-        icon=ft.Icons.SAVE,
-        tooltip="Guardar Cambios",
-        icon_color=ft.Colors.WHITE,
-        on_click=None, 
-        visible=False, 
-    )
-    cancel_button_appbar = ft.IconButton(
-        icon=ft.Icons.CANCEL,
-        tooltip="Cancelar Edición",
-        icon_color=ft.Colors.WHITE,
-        on_click=None, 
-        visible=False, 
+        on_click=None, # Se asignará más abajo
+        icon_color=ft.Colors.RED_300
     )
 
-    # Crear el AppBar de la vista de perfil
-    profile_appbar = ft.AppBar(
-        bgcolor=PRIMARY_COLOR,
-        toolbar_height=50,
-        elevation=2,
-        leading=ft.Container(
-            content=ft.Row(
-                [
-                    ft.Text(
-                        "Mi Perfil",
-                        style=ft.TextStyle(
-                            size=18,
-                            weight=heading_medium_style().weight,
-                            color=ft.Colors.WHITE,
-                        ),
-                        no_wrap=True,
-                    ),
-                ],
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-            ),
-            padding=ft.padding.only(left=20, right=5),
-            alignment=ft.alignment.center_left,
-        ),
-        actions=[
-            back_button_appbar, 
-            edit_button_appbar,
-            delete_button_appbar,
-            save_button_appbar, 
-            cancel_button_appbar, 
-        ]
-    )
+    # --- Funciones de Eventos (Definidas ANTES de que se creen los controles que las usan) ---
 
-    # Funciones de Editar/Guardar/Cancelar/Eliminar
-    def toggle_edit_mode(e):
-        print("DEBUG: Entrando a toggle_edit_mode")
-        is_editing = not name_field.read_only 
+    def toggle_edit_mode(enable: bool):
+        # Habilita o deshabilita los campos de texto
+        name_field.read_only = not enable
+        lastname1_field.read_only = not enable
+        lastname2_field.read_only = not enable
+        username_field.read_only = not enable
+        email_field.read_only = not enable
+        phone_field.read_only = not enable
+
+        # Muestra/oculta los botones de guardar/cancelar
+        save_button.visible = enable
+        cancel_button.visible = enable
         
-        name_field.read_only = is_editing
-        lastname1_field.read_only = is_editing
-        lastname2_field.read_only = is_editing
-        username_field.read_only = is_editing 
-        email_field.read_only = is_editing
-        phone_field.read_only = is_editing
-
-        save_button.visible = not is_editing 
-        cancel_button.visible = not is_editing 
+        # Oculta el botón de editar cuando se está editando
+        edit_button.visible = not enable
         
-        edit_button_appbar.visible = is_editing 
-        delete_button_appbar.visible = is_editing 
-        back_button_appbar.visible = is_editing 
-        save_button_appbar.visible = not is_editing 
-        cancel_button_appbar.visible = not is_editing 
+        # Asegúrate de que los botones de guardar/cancelar estén deshabilitados al iniciar el modo edición
+        # o cuando se sale de él (si no hay cambios)
+        save_button.disabled = not enable 
+        cancel_button.disabled = not enable
 
-        page.update() 
-        print(f"DEBUG: Modo edición: {not name_field.read_only}")
+        page.update()
+        
+        # Si se está habilitando el modo edición, enfoca el primer campo
+        if enable:
+            name_field.focus()
 
-    def on_save_changes(e):
-        print("DEBUG: Botón 'Guardar Cambios' clickeado.")
-        print(f"DEBUG: Valores actuales de los campos: "
-              f"Nombre={name_field.value}, "
-              f"Apellido1={lastname1_field.value}, "
-              f"Apellido2={lastname2_field.value}, "
-              f"Username={username_field.value}, "
-              f"Email={email_field.value}, "
-              f"Teléfono={phone_field.value}")
 
-        if not name_field.value or not lastname1_field.value or not username_field.value or not email_field.value:
-            print("DEBUG: Falló la validación: Campos obligatorios vacíos.")
+    def on_field_change(e):
+        # Esta función ahora solo necesita habilitar/deshabilitar los botones si están visibles
+        if save_button.visible: # Solo chequea si están visibles (i.e., en modo edición)
+            has_changes = False
+            if (name_field.value != current_name or
+                lastname1_field.value != current_lastname1 or
+                lastname2_field.value != current_lastname2 or
+                username_field.value != current_username or
+                email_field.value != current_email or
+                phone_field.value != current_phone):
+                has_changes = True
+
+            save_button.disabled = not has_changes
+            cancel_button.disabled = not has_changes
+            page.update()
+
+    def on_save_button_click(e):
+        # Validaciones
+        if not name_field.value:
             page.snack_bar = ft.SnackBar(
-                ft.Text("Nombre, primer apellido, nombre de usuario y email son obligatorios.", color=ft.Colors.WHITE),
+                ft.Text("El nombre es obligatorio.", color=ft.Colors.WHITE),
                 bgcolor=ft.Colors.RED_700,
             )
             page.snack_bar.open = True
             page.update()
             return
-        
-        if "@" not in email_field.value or "." not in email_field.value:
-            print("DEBUG: Falló la validación: Formato de email inválido.")
+
+        if not lastname1_field.value:
+            page.snack_bar = ft.SnackBar(
+                ft.Text("El primer apellido es obligatorio.", color=ft.Colors.WHITE),
+                bgcolor=ft.Colors.RED_700,
+            )
+            page.snack_bar.open = True
+            page.update()
+            return
+
+        if not username_field.value:
+            page.snack_bar = ft.SnackBar(
+                ft.Text("El nombre de usuario es obligatorio.", color=ft.Colors.WHITE),
+                bgcolor=ft.Colors.RED_700,
+            )
+            page.snack_bar.open = True
+            page.update()
+            return
+
+        if not email_field.value:
+            page.snack_bar = ft.SnackBar(
+                ft.Text("El email es obligatorio.", color=ft.Colors.WHITE),
+                bgcolor=ft.Colors.RED_700,
+            )
+            page.snack_bar.open = True
+            page.update()
+            return
+
+        # Validación de formato de email
+        import re
+        if not re.match(r"[^@]+@[^@]+\.[^@]+", email_field.value):
             page.snack_bar = ft.SnackBar(
                 ft.Text("Formato de email inválido.", color=ft.Colors.WHITE),
                 bgcolor=ft.Colors.RED_700,
@@ -209,122 +222,141 @@ def ProfileView(page: ft.Page):
             page.update()
             return
 
-        print("DEBUG: Validaciones pasadas. Intentando actualizar el usuario en la DB.")
-        updated = update_user(
+        # Validación de formato de teléfono (solo números, mínimo 8 dígitos si está presente)
+        if phone_field.value:
+            if not re.match(r"^[0-9]{8,}$", phone_field.value):
+                page.snack_bar = ft.SnackBar(
+                    ft.Text("Formato de teléfono inválido (solo números, mínimo 8 dígitos).", color=ft.Colors.WHITE),
+                    bgcolor=ft.Colors.RED_700,
+                )
+                page.snack_bar.open = True
+                page.update()
+                return
+
+        updated_success = update_user(
             user_id,
             name_field.value,
             lastname1_field.value,
             lastname2_field.value,
-            username_field.value, 
+            username_field.value,
             email_field.value,
             phone_field.value,
         )
 
-        if updated:
-            print("DEBUG: Usuario actualizado exitosamente en la DB.")
-            # Actualizar la sesión guardada con el nuevo username/nombre si es necesario
-            page.logged_in_user["username"] = username_field.value
-            page.logged_in_user["nombre"] = name_field.value
-            
+        if updated_success:
+            # Actualizar los datos originales para que on_field_change funcione correctamente
+            nonlocal current_name, current_lastname1, current_lastname2, current_username, current_email, current_phone
+            current_name = name_field.value
+            current_lastname1 = lastname1_field.value
+            current_lastname2 = lastname2_field.value
+            current_username = username_field.value
+            current_email = email_field.value
+            current_phone = phone_field.value
+
             page.snack_bar = ft.SnackBar(
-                ft.Text("Información actualizada exitosamente!", color=ft.Colors.WHITE),
+                ft.Text("¡Perfil actualizado con éxito!", color=ft.Colors.WHITE),
+                bgcolor=ft.Colors.GREEN_700,
+            )
+            page.snack_bar.open = True 
+
+            # Actualizar el nombre de usuario en la barra de navegación si existe
+            if page.logged_in_user:
+                page.logged_in_user["username"] = username_field.value
+
+            # Volver a modo de solo lectura y ocultar botones de guardar/cancelar
+            toggle_edit_mode(False) # Deshabilita el modo edición
+            
+            # Redirigir al home (como lo solicitaste previamente)
+            page.views.clear()
+            page.go("/")
+            page.update() # Importante actualizar la página después de go()
+
+        else:
+            page.snack_bar = ft.SnackBar(
+                ft.Text("Error al actualizar el perfil. El nombre de usuario o email podrían estar en uso.", color=ft.Colors.WHITE),
+                bgcolor=ft.Colors.RED_700,
+            )
+            page.snack_bar.open = True
+            page.update()
+
+    def on_cancel_button_click(e):
+        # Restablecer los campos a los valores originales
+        name_field.value = current_name
+        lastname1_field.value = current_lastname1
+        lastname2_field.value = current_lastname2
+        username_field.value = current_username
+        email_field.value = current_email
+        phone_field.value = current_phone
+
+        # Deshabilitar botones y volver a modo de solo lectura
+        toggle_edit_mode(False)
+        page.update()
+
+
+    # --- Diálogo de Confirmación de Eliminación ---
+    def delete_confirmation_dialog_result(e: ft.ControlEvent):
+        page.dialog.open = False
+        if e.control.text == "Sí, eliminar":
+            perform_delete_action()
+        page.update()
+
+    def perform_delete_action():
+        """Función para ejecutar la eliminación real si se confirma."""
+        if delete_user(user_id):
+            page.snack_bar = ft.SnackBar(
+                ft.Text("¡Cuenta eliminada con éxito! Redirigiendo...", color=ft.Colors.WHITE),
                 bgcolor=ft.Colors.GREEN_700,
             )
             page.snack_bar.open = True
-            page.update() # Asegurarse de que el SnackBar se muestre
-            
-            # --- ¡CAMBIO CLAVE AQUÍ: DOBLE REDIRECCIÓN PARA FORZAR LA RECARGA! ---
-            print("DEBUG: Realizando doble redirección para forzar la recarga de la vista.")
-            # Ir al home y luego inmediatamente al perfil
-            page.go("/") 
-            page.go("/profile")
-            
+            page.update()
+            # Cerrar sesión y redirigir al inicio
+            page.go("/")
+            page.logged_in_user = None # Limpiar la sesión localmente
+            page.update()
         else:
-            print("DEBUG: Falló la actualización del usuario en la DB (posiblemente username/email duplicado).")
             page.snack_bar = ft.SnackBar(
-                ft.Text("Error al actualizar la información. El nombre de usuario o email podrían ya existir.", color=ft.Colors.RED_700),
+                ft.Text("Error al eliminar la cuenta. Inténtalo de nuevo.", color=ft.Colors.WHITE),
                 bgcolor=ft.Colors.RED_700,
             )
-        page.snack_bar.open = True
-        page.update()
-        print("DEBUG: Finalizando on_save_changes.")
+            page.snack_bar.open = True
+            page.update()
 
-
-    def on_cancel_edit(e):
-        print("DEBUG: Botón 'Cancelar' clickeado.")
-        user_data_reloaded = get_user_by_id(user_id)
-        if user_data_reloaded:
-            name_field.value = user_data_reloaded[1]
-            lastname1_field.value = user_data_reloaded[2]
-            lastname2_field.value = user_data_reloaded[3]
-            username_field.value = user_data_reloaded[4]
-            email_field.value = user_data_reloaded[5]
-            phone_field.value = user_data_reloaded[6]
-        
-        toggle_edit_mode(None) 
-        page.update()
-        print("DEBUG: on_cancel_edit finalizado.")
-
-    def on_delete_user(e):
-        print("DEBUG: Botón 'Eliminar Cuenta' clickeado.")
-        def confirm_delete(e):
-            print(f"DEBUG: Confirmación de eliminación: {e.control.text}")
-            if e.control.text == "Sí":
-                deleted = delete_user(user_id)
-                if deleted:
-                    print("DEBUG: Cuenta eliminada exitosamente.")
-                    page.client_storage.remove("current_user_session_id")
-                    page.logged_in_user = None
-                    page.snack_bar = ft.SnackBar(
-                        ft.Text("Tu cuenta ha sido eliminada.", color=ft.Colors.WHITE),
-                        bgcolor=ft.Colors.GREEN_700,
-                    )
-                    page.snack_bar.open = True
-                    page.update()
-                    page.go("/login") 
-                else:
-                    print("DEBUG: Error al eliminar la cuenta.")
-                    page.snack_bar = ft.SnackBar(
-                        ft.Text("Error al eliminar la cuenta.", color=ft.Colors.WHITE),
-                        bgcolor=ft.Colors.RED_700,
-                    )
-                    page.snack_bar.open = True
-                    page.update()
-            page.close_dialog() 
-
+    def on_delete_account_click(e):
+        # Crear el diálogo de confirmación
+        print("Botón de eliminar clickeado, mostrando diálogo.") # Para depuración
         page.dialog = ft.AlertDialog(
             modal=True,
-            title=ft.Text("Confirmar Eliminación"),
+            title=ft.Text("Confirmar Eliminación de Cuenta"),
             content=ft.Text("¿Estás seguro de que quieres eliminar tu cuenta? Esta acción es irreversible."),
             actions=[
-                ft.TextButton("Sí", on_click=confirm_delete),
-                ft.TextButton("No", on_click=confirm_delete),
+                ft.TextButton("Sí, eliminar", on_click=delete_confirmation_dialog_result, style=ft.ButtonStyle(color=ft.Colors.RED_700)),
+                ft.ElevatedButton("Cancelar", on_click=delete_confirmation_dialog_result),
             ],
             actions_alignment=ft.MainAxisAlignment.END,
         )
         page.dialog.open = True
         page.update()
-        print("DEBUG: Diálogo de eliminación abierto.")
 
-
-    # Asignar los on_click a los botones del AppBar
-    edit_button_appbar.on_click = toggle_edit_mode
-    delete_button_appbar.on_click = on_delete_user
-    save_button_appbar.on_click = on_save_changes
-    cancel_button_appbar.on_click = on_cancel_edit
-
-    # Conectar los botones de la vista con sus funciones (botones de la parte inferior)
-    save_button.on_click = on_save_changes
-    cancel_button.on_click = on_cancel_edit
+    # --- Asignar on_click a los botones después de que todas las funciones estén definidas ---
+    save_button.on_click = on_save_button_click
+    cancel_button.on_click = on_cancel_button_click
+    edit_button.on_click = lambda e: toggle_edit_mode(True) # Ahora la función existe
+    delete_button.on_click = on_delete_account_click # Ahora la función existe
 
     return ft.View(
-        "/profile", 
+        "/profile",
         [
-            profile_appbar, 
+            ft.AppBar(
+                title=ft.Text("Mi Perfil", style=heading_medium_style()),
+                bgcolor=PRIMARY_COLOR,
+                actions=[
+                    edit_button,   # Botón de editar (ya creado con su on_click)
+                    delete_button, # Botón de eliminar (ya creado con su on_click)
+                ],
+            ),
             ft.Column(
                 [
-                    ft.Text("Detalles de tu Perfil", style=heading_large_style()),
-                    ft.Divider(height=30),
+                    ft.Text("Tu información de perfil", style=body_text_style()),
                     ft.ResponsiveRow(
                         [
                             ft.Column([name_field], col={"sm": 12, "md": 6, "lg": 4}),
@@ -343,7 +375,7 @@ def ProfileView(page: ft.Page):
                         [save_button, cancel_button],
                         alignment=ft.MainAxisAlignment.CENTER,
                         spacing=20,
-                    )
+                    ),
                 ],
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 alignment=ft.MainAxisAlignment.START,
@@ -353,6 +385,6 @@ def ProfileView(page: ft.Page):
             ),
         ],
         bgcolor=page_background_style()["bgcolor"],
-        vertical_alignment=ft.MainAxisAlignment.START,
+        vertical_alignment=ft.MainAxisAlignment.CENTER,
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
     )
