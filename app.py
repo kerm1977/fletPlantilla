@@ -1,4 +1,4 @@
-# main.py
+# main.py (Este es el archivo que tú llamas app.py)
 
 import flet as ft
 from styles import (
@@ -17,77 +17,72 @@ from styles import (
     ACCENT_COLOR,
     PRIMARY_COLOR
 )
-from db import init_db, find_user_by_username # Importamos find_user_by_username para verificar la sesión
+from db import init_db, find_user_by_username 
 
 # --- ¡IMPORTAMOS LAS VISTAS! ---
 from login import LoginView
 from register import RegisterView
+from profile import ProfileView # ¡NUEVA IMPORTACIÓN DE PROFILEVIEW!
 
 
 def main(page: ft.Page):
-    init_db() # Aseguramos que la DB esté inicializada al inicio de la app
+    init_db() 
 
-    page.title = "La Tribu App" # Título general de la ventana/tab
+    page.title = "La Tribu App" 
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     
     page.theme = app_theme()
     page.bgcolor = page_background_style()["bgcolor"]
 
-    # Variable para almacenar el usuario actualmente logueado (puedes almacenar el objeto completo del usuario)
-    page.logged_in_user = None # Inicialmente no hay usuario logueado
+    page.logged_in_user = None 
 
-    # --- Función para cerrar sesión ---
     def logout(e):
-        page.client_storage.remove("current_user_session_id") # Elimina el ID de sesión del almacenamiento
-        page.logged_in_user = None # Limpia la variable de usuario logueado
+        page.client_storage.remove("current_user_session_id")
+        page.logged_in_user = None 
         page.snack_bar = ft.SnackBar(
             ft.Text("Sesión cerrada correctamente.", color=ft.Colors.WHITE),
             bgcolor=ft.Colors.GREEN_700,
         )
         page.snack_bar.open = True
         page.update()
-        page.go("/login") # Redirige al login
+        page.go("/login")
 
-    # --- Función para verificar la sesión al inicio ---
     def check_session_on_start():
         session_username = page.client_storage.get("current_user_session_id")
         if session_username:
             user_data = find_user_by_username(session_username)
             if user_data:
-                # Asume user_data es (id, nombre, password_hash, username, email, telefono)
-                # Almacena el nombre de usuario para simplificar, o el ID, o un objeto User
-                page.logged_in_user = {"username": user_data[3], "id": user_data[0], "nombre": user_data[1]}
+                page.logged_in_user = {
+                    "username": user_data[3],
+                    "id": user_data[0], 
+                    "nombre": user_data[1]
+                }
                 print(f"DEBUG: Sesión restaurada para usuario: {page.logged_in_user['username']}")
-                page.go("/") # Ir a Home si hay sesión activa
+                page.go("/")
             else:
-                # Usuario no encontrado en DB, limpiar sesión inválida
                 page.client_storage.remove("current_user_session_id")
                 page.logged_in_user = None
                 print("DEBUG: Sesión inválida detectada y eliminada.")
         else:
             print("DEBUG: No hay sesión persistente guardada.")
         
-        # Después de verificar la sesión, procesa la ruta inicial
         route_change(page.route)
 
 
-    # --- Función para cambiar de vista basada en la ruta ---
     def route_change(route):
-        page.views.clear() # Limpia las vistas actuales
+        page.views.clear()
         
-        # Definición de la vista HOME (pública o logueado)
         home_appbar_actions = []
         home_content = []
 
         if page.logged_in_user:
-            # Si hay usuario logueado, mostrar "Mi Perfil" y "Cerrar Sesión"
             home_appbar_actions.append(
                 ft.IconButton(
                     icon=ft.Icons.ACCOUNT_CIRCLE,
-                    tooltip=f"Bienvenido, {page.logged_in_user['nombre']}",
+                    tooltip=f"Mi Perfil ({page.logged_in_user['nombre']})", 
                     icon_color=ft.Colors.WHITE,
-                    on_click=lambda e: print("DEBUG: Ir a Perfil (no implementado aún)") # Implementar vista de perfil
+                    on_click=lambda e: page.go("/profile") # ¡ESTE ES EL CAMBIO CLAVE EN EL ON_CLICK!
                 )
             )
             home_appbar_actions.append(
@@ -95,7 +90,7 @@ def main(page: ft.Page):
                     icon=ft.Icons.LOGOUT,
                     tooltip="Cerrar Sesión",
                     icon_color=ft.Colors.WHITE,
-                    on_click=logout, # Llama a la función de cerrar sesión
+                    on_click=logout,
                 )
             )
             home_content.extend([
@@ -104,10 +99,9 @@ def main(page: ft.Page):
                 ft.Text("Desde aquí puedes gestionar tu cuenta.", style=caption_text_style()),
             ])
         else:
-            # Si no hay usuario logueado, mostrar botón de "Iniciar Sesión"
             home_appbar_actions.append(
                 ft.IconButton(
-                    icon=ft.Icons.PERSON_OUTLINE, # O usa ft.Icons.ACCOUNT_CIRCLE, ft.Icons.LOGIN
+                    icon=ft.Icons.PERSON_OUTLINE,
                     tooltip="Iniciar Sesión",
                     icon_color=ft.Colors.WHITE,
                     on_click=lambda e: page.go("/login"),
@@ -119,14 +113,13 @@ def main(page: ft.Page):
                 ft.Text("Desde aquí puedes iniciar sesión o registrarte.", style=caption_text_style()),
             ])
         
-        # Vista Home (ruta "/")
         if page.route == "/":
             page.views.append(
                 ft.View(
-                    "/", # La ruta de esta vista
+                    "/",
                     [
                         ft.AppBar(
-                            bgcolor=ft.Colors.ORANGE_700,
+                            bgcolor=PRIMARY_COLOR, 
                             toolbar_height=50,
                             elevation=2,
                             leading=ft.Container(
@@ -147,9 +140,8 @@ def main(page: ft.Page):
                                 padding=ft.padding.only(left=20, right=5),
                                 alignment=ft.alignment.center_left,
                             ),
-                            actions=home_appbar_actions # Acciones dinámicas
+                            actions=home_appbar_actions
                         ),
-                        # Contenido de la página principal (dinámico)
                         ft.Column(
                             home_content,
                             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -163,31 +155,33 @@ def main(page: ft.Page):
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 )
             )
-        # Vista de Login - Ruta: /login
         elif page.route == "/login":
             page.views.append(LoginView(page))
 
-        # Vista de Registro - Ruta: /register
         elif page.route == "/register":
             page.views.append(RegisterView(page))
-
+        
+        # ¡NUEVA RUTA para el perfil del usuario!
+        elif page.route == "/profile":
+            if page.logged_in_user: 
+                page.views.append(ProfileView(page))
+            else:
+                page.go("/login") 
+        
         page.update()
 
-    # --- Función para manejar el cierre de vistas (navegación hacia atrás) ---
     def view_pop(view):
-        page.views.pop() # Elimina la vista actual de la pila
-        if page.views: # Asegura que hay vistas en la pila
-            top_view = page.views[-1] # Obtiene la vista anterior
-            page.go(top_view.route) # Navega a la ruta de la vista anterior
-        else: # Si no hay más vistas, cierra la aplicación o va a una vista predeterminada
-            page.go("/") # Si se cierra el login, vuelve al home
+        page.views.pop()
+        if page.views:
+            top_view = page.views[-1]
+            page.go(top_view.route)
+        else:
+            page.go("/")
 
     page.on_route_change = route_change
     page.on_view_pop = view_pop
 
-    # Llamar a la función para verificar la sesión al inicio de la aplicación
-    # Esta es la primera acción que toma la aplicación en cuanto se carga la página.
-    page.add(ft.Text("Cargando...", visible=False)) # Pequeño truco para que page.client_storage esté listo
+    page.add(ft.Text("Cargando...", visible=False)) 
     check_session_on_start()
 
 
