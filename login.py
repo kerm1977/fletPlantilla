@@ -1,6 +1,6 @@
 # login.py
 import flet as ft
-import bcrypt # Necesario para verificar contraseñas hasheadas
+import bcrypt
 
 from styles import (
     heading_large_style,
@@ -15,7 +15,6 @@ from styles import (
     ACCENT_COLOR
 )
 
-# Importamos las funciones de la base de datos necesarias para login
 from db import find_user_by_username, get_all_users
 
 def LoginView(page: ft.Page):
@@ -39,6 +38,20 @@ def LoginView(page: ft.Page):
         prefix_icon=ft.Icons.LOCK,
     )
 
+    # Checkbox para recordar nombre de usuario
+    remember_me_checkbox = ft.Checkbox(
+        label="Recordarme",
+        value=False, # Estado inicial
+        adaptive=True,
+    )
+
+    # Pre-carga del nombre de usuario y estado del checkbox al inicializar la vista
+    # Esto asegura que el campo se rellene ANTES de que la vista sea completamente renderizada
+    remembered_username = page.client_storage.get("remembered_username")
+    if remembered_username:
+        username_field.value = remembered_username
+        remember_me_checkbox.value = True
+
     def on_login_button_click(e):
         username = username_field.value
         password = password_field.value
@@ -52,40 +65,46 @@ def LoginView(page: ft.Page):
             page.update()
             return
 
-        print(f"DEBUG: Intento de inicio de sesión con: Usuario='{username}', Contraseña='{password}'")
-
         user_data = find_user_by_username(username)
-        print(f"DEBUG: Datos del usuario recuperados de DB: {user_data}")
 
         if user_data:
-            # user_data es una tupla: (id, username, password_hash)
-            stored_password_hash = user_data[2]
-            print(f"DEBUG: Contraseña hasheada almacenada: {stored_password_hash}")
+            stored_password_hash = user_data[2] # El hash de la contraseña está en user_data[2]
             
-            # Verificar la contraseña usando bcrypt
             try:
-                # bcrypt.checkpw toma bytes, por eso .encode('utf-8')
+                # Comprobar la contraseña
                 if bcrypt.checkpw(password.encode('utf-8'), stored_password_hash.encode('utf-8')):
-                    print("DEBUG: ¡bcrypt.checkpw DEVOLVIÓ TRUE! Inicio de sesión exitoso.")
                     page.snack_bar = ft.SnackBar(
                         ft.Text("Inicio de sesión exitoso!", color=ft.Colors.WHITE),
                         bgcolor=ft.Colors.GREEN_700,
                     )
                     page.snack_bar.open = True
-                    page.update()
                     
-                    # --- ¡REDIRECCIÓN A LA PÁGINA HOME! ---
-                    page.go("/") # Navega a la ruta raíz (home)
+                    # Nuevo: Guardar/Borrar nombre de usuario si "Recordarme" está marcado/desmarcado
+                    if remember_me_checkbox.value:
+                        page.client_storage.set("remembered_username", username)
+                        # Nuevo: Guardar el nombre de usuario como indicador de sesión activa
+                        page.client_storage.set("current_user_session_id", username) 
+                        print(f"DEBUG: Sesión y nombre de usuario '{username}' guardados en client_storage.")
+                    else:
+                        page.client_storage.remove("remembered_username")
+                        page.client_storage.remove("current_user_session_id") # Asegúrate de limpiar la sesión si desmarcan
+                        print("DEBUG: Sesión y nombre de usuario eliminados de client_storage.")
                     
+                    # Actualizar el estado global del usuario logueado en la página
+                    # Asume user_data es (id, nombre, password_hash, username, email, telefono)
+                    page.logged_in_user = {"username": user_data[3], "id": user_data[0], "nombre": user_data[1]}
+
+                    page.update() # Actualizar la UI antes de la navegación
+                    page.go("/") # Redirige a la página principal (Home)
+
                 else:
-                    print("DEBUG: ¡bcrypt.checkpw DEVOLVIÓ FALSE! Contraseña incorrecta.")
                     page.snack_bar = ft.SnackBar(
                         ft.Text("Nombre de usuario o contraseña incorrectos.", color=ft.Colors.WHITE),
                         bgcolor=ft.Colors.RED_700,
                     )
                     page.snack_bar.open = True
                     page.update()
-            except ValueError as ve: # Esto puede ocurrir si el hash no es válido (ej. corrupto)
+            except ValueError as ve:
                  print(f"DEBUG: ERROR: ValueError en bcrypt.checkpw: {ve}")
                  page.snack_bar = ft.SnackBar(
                     ft.Text(f"Error de autenticación (hash inválido). Contacta al soporte.", color=ft.Colors.WHITE),
@@ -100,10 +119,9 @@ def LoginView(page: ft.Page):
                     bgcolor=ft.Colors.RED_700,
                 )
                 page.snack_bar.open = True
-                page.snack_bar.duration = 5000 # Para que el usuario tenga tiempo de leer
+                page.snack_bar.duration = 5000
                 page.update()
         else:
-            print("DEBUG: Usuario no encontrado en la base de datos.")
             page.snack_bar = ft.SnackBar(
                 ft.Text("Nombre de usuario o contraseña incorrectos.", color=ft.Colors.WHITE),
                 bgcolor=ft.Colors.RED_700,
@@ -116,7 +134,7 @@ def LoginView(page: ft.Page):
         page.update()
 
     return ft.View(
-        "/login", # Ruta para esta vista
+        "/login",
         [
             ft.AppBar(
                 bgcolor=ft.Colors.ORANGE_700,
@@ -129,7 +147,7 @@ def LoginView(page: ft.Page):
                                 "Iniciar Sesión",
                                 style=ft.TextStyle(
                                     size=18,
-                                    weight=heading_medium_style().weight, # Usa .weight
+                                    weight=heading_medium_style().weight,
                                     color=ft.Colors.WHITE,
                                 ),
                                 no_wrap=True,
@@ -148,6 +166,11 @@ def LoginView(page: ft.Page):
                     ft.Divider(height=30),
                     username_field,
                     password_field,
+                    ft.Container(
+                        content=remember_me_checkbox,
+                        width=300,
+                        alignment=ft.alignment.center_left,
+                    ),
                     ft.ElevatedButton(
                         "Iniciar Sesión",
                         style=primary_button_style(),
@@ -162,16 +185,16 @@ def LoginView(page: ft.Page):
                         ),
                         on_click=on_register_link_click,
                     ),
+                    # Para depuración
                     ft.Divider(height=30),
                     ft.Text("Usuarios en DB (Solo para prueba):", style=caption_text_style()),
                     ft.Column(
                         [
-                            # Muestra username y email de cada usuario
                             ft.Text(f"- {u[3]} ({u[4]})") 
                             for u in get_all_users()
                         ],
                         scroll=ft.ScrollMode.ADAPTIVE,
-                        height=100, # Limita la altura de la lista para no desbordar
+                        height=100,
                     ),
                 ],
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
