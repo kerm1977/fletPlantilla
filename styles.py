@@ -1,134 +1,146 @@
+# styles.py
+
 import flet as ft
 
-# --- Paleta de Colores Vistosos ---
-PRIMARY_COLOR = ft.Colors.BLUE_ACCENT_700
-PRIMARY_COLOR_LIGHT = ft.Colors.BLUE_ACCENT_100
-ACCENT_COLOR = ft.Colors.CYAN_700
-BACKGROUND_COLOR = ft.Colors.WHITE
-SURFACE_COLOR = ft.Colors.GREY_50
-TEXT_COLOR_DARK = ft.Colors.BLUE_GREY_900
-TEXT_COLOR_LIGHT = ft.Colors.BLUE_GREY_400
-ERROR_COLOR = ft.Colors.RED_ACCENT_700
+# Colores primarios y de acento para usar en el tema y otros componentes
+PRIMARY_COLOR = ft.Colors.ORANGE_700
+ACCENT_COLOR = ft.Colors.BLUE_700
+
+def app_theme():
+    """
+    Define el tema general de la aplicación.
+    """
+    return ft.Theme(
+        color_scheme=ft.ColorScheme(
+            primary=PRIMARY_COLOR,
+            primary_container=ft.Colors.ORANGE_100,
+            on_primary=ft.Colors.WHITE,
+            secondary=ACCENT_COLOR,
+            secondary_container=ft.Colors.BLUE_100,
+            on_secondary=ft.Colors.WHITE,
+            surface=ft.Colors.WHITE,
+            on_surface=ft.Colors.BLACK,
+            background=ft.Colors.WHITE,
+            on_background=ft.Colors.BLACK,
+            error=ft.Colors.RED_700,
+            on_error=ft.Colors.WHITE,
+        ),
+    )
+
+def page_background_style():
+    """
+    Define el estilo del fondo de la página.
+    Devuelve un diccionario porque es usado como **kwargs.
+    """
+    return {"bgcolor": ft.Colors.BLUE_GREY_50}
 
 # --- Estilos de Texto ---
 def heading_large_style():
-    return ft.TextStyle(
-        size=28,
-        weight=ft.FontWeight.BOLD,
-        color=TEXT_COLOR_DARK,
-    )
+    """
+    Estilo para títulos grandes.
+    Devuelve un objeto ft.TextStyle.
+    """
+    return ft.TextStyle(size=28, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_GREY_900)
 
 def heading_medium_style():
-    return ft.TextStyle(
-        size=22,
-        weight=ft.FontWeight.W_600,
-        color=TEXT_COLOR_DARK,
-    )
+    """
+    Estilo para títulos medianos.
+    Devuelve un objeto ft.TextStyle.
+    """
+    return ft.TextStyle(size=22, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_GREY_900)
 
 def body_text_style():
-    return ft.TextStyle(
-        size=16,
-        color=TEXT_COLOR_DARK,
-    )
+    """
+    Estilo para texto de cuerpo general.
+    Devuelve un objeto ft.TextStyle.
+    """
+    return ft.TextStyle(size=16, color=ft.Colors.BLUE_GREY_700)
 
 def caption_text_style():
-    return ft.TextStyle(
-        size=12,
-        color=TEXT_COLOR_LIGHT,
-    )
+    """
+    Estilo para texto de subtítulos o descripciones pequeñas.
+    Devuelve un objeto ft.TextStyle.
+    """
+    return ft.TextStyle(size=12, color=ft.Colors.BLUE_GREY_500)
 
 # --- Estilos de Botones ---
 def primary_button_style():
+    """
+    Estilo para botones de acción principal.
+    Devuelve un objeto ft.ButtonStyle.
+    """
     return ft.ButtonStyle(
         color={
+            # ¡CAMBIADO a ft.ControlState.HOVERED!
             ft.ControlState.HOVERED: ft.Colors.WHITE,
             ft.ControlState.FOCUSED: ft.Colors.WHITE,
             ft.ControlState.DEFAULT: ft.Colors.WHITE,
         },
-        bgcolor={
-            ft.ControlState.HOVERED: ft.Colors.BLUE_ACCENT_400,
-            ft.ControlState.FOCUSED: PRIMARY_COLOR,
-            ft.ControlState.DEFAULT: PRIMARY_COLOR,
-        },
-        padding=ft.padding.symmetric(horizontal=25, vertical=15),
-        shape=ft.RoundedRectangleBorder(radius=10),
-        animation_duration=300,
+        bgcolor=PRIMARY_COLOR,
+        padding=ft.padding.all(15),
+        shape=ft.RoundedRectangleBorder(radius=ft.border_radius.all(8)),
     )
 
 def outline_button_style():
+    """
+    Estilo para botones con contorno.
+    Devuelve un objeto ft.ButtonStyle.
+    """
     return ft.ButtonStyle(
         color=PRIMARY_COLOR,
         bgcolor=ft.Colors.TRANSPARENT,
         side=ft.BorderSide(2, PRIMARY_COLOR),
-        padding=ft.padding.symmetric(horizontal=25, vertical=15),
-        shape=ft.RoundedRectangleBorder(radius=10),
-        animation_duration=300,
+        padding=ft.padding.all(15),
+        shape=ft.RoundedRectangleBorder(radius=ft.border_radius.all(8)),
     )
 
 def text_button_style():
+    """
+    Estilo para botones de texto (enlaces).
+    Devuelve un objeto ft.ButtonStyle.
+    """
     return ft.ButtonStyle(
         color=ACCENT_COLOR,
-        bgcolor=ft.Colors.TRANSPARENT,
-        # Corregido: Usa ft.Colors.with_opacity(opacity, color_base)
-        overlay_color=ft.Colors.with_opacity(0.1, ft.Colors.CYAN),
-        padding=ft.padding.symmetric(horizontal=15, vertical=10),
-        shape=ft.RoundedRectangleBorder(radius=8),
+        padding=ft.padding.all(10),
     )
 
-# --- Estilos de Contenedores y Tarjetas (Cards) ---
+# --- Estilos de Contenedores y Entradas de Texto ---
 def card_container_style():
+    """
+    Estilo para contenedores tipo tarjeta.
+    Devuelve un diccionario porque es usado como **kwargs.
+    """
     return {
-        "padding": 20,
-        "border_radius": 15,
-        "bgcolor": SURFACE_COLOR,
-        "shadow": ft.BoxShadow(
-            spread_radius=2,
-            blur_radius=15,
-            # ¡Corregido! Usa ft.Colors.with_opacity(opacity, color_base)
-            color=ft.Colors.with_opacity(0.08, ft.Colors.BLACK),
-            offset=ft.Offset(0, 5),
-            blur_style=ft.ShadowBlurStyle.NORMAL,
-        ),
+        "padding": ft.padding.all(15),
+        "border_radius": ft.border_radius.all(10),
+        "bgcolor": ft.Colors.WHITE,
+        "elevation": 3,
+    }
+
+def text_input_style():
+    """
+    Estilo base para campos de entrada de texto.
+    Devuelve un diccionario porque es usado como **kwargs.
+    """
+    return {
+        "border_radius": ft.border_radius.all(8),
+        "filled": True,
+        "fill_color": ft.Colors.WHITE,
+        "border_color": ft.Colors.GREY_300,
+        "focused_border_color": PRIMARY_COLOR,
+        "label_style": ft.TextStyle(color=ft.Colors.GREY_600),
+        "cursor_color": PRIMARY_COLOR,
+        "hint_style": ft.TextStyle(color=ft.Colors.GREY_400),
     }
 
 def image_card_container_style():
+    """
+    Estilo para contenedores de tarjetas de imagen.
+    Devuelve un diccionario porque es usado como **kwargs.
+    """
     return {
-        "padding": 10,
-        "border_radius": 15,
-        "bgcolor": SURFACE_COLOR,
+        "width": 150,
+        "height": 150,
+        "border_radius": ft.border_radius.all(10),
         "clip_behavior": ft.ClipBehavior.ANTI_ALIAS,
-        "shadow": ft.BoxShadow(
-            spread_radius=1,
-            blur_radius=10,
-            # ¡Corregido! Usa ft.Colors.with_opacity(opacity, color_base)
-            color=ft.Colors.with_opacity(0.05, ft.Colors.BLACK),
-            offset=ft.Offset(0, 3),
-            blur_style=ft.ShadowBlurStyle.NORMAL,
-        ),
-    }
-
-# --- Estilos de Campos de Texto (Input) ---
-def text_input_style():
-    return {
-        "border_radius": 10,
-        "border_color": ft.Colors.BLUE_GREY_200,
-        "focused_border_color": PRIMARY_COLOR,
-        "filled": True,
-        "fill_color": ft.Colors.GREY_100,
-        "content_padding": 12,
-        "cursor_color": PRIMARY_COLOR,
-        "label_style": body_text_style(),
-    }
-
-# --- Tema General de la Aplicación ---
-def app_theme():
-    return ft.Theme(
-        color_scheme_seed=PRIMARY_COLOR,
-        use_material3=True,
-    )
-
-# --- Estilos de la Página (Opcional, para el fondo) ---
-def page_background_style():
-    return {
-        "bgcolor": BACKGROUND_COLOR,
     }

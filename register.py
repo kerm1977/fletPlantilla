@@ -1,17 +1,18 @@
 # register.py
 import flet as ft
+
 from styles import (
     heading_large_style,
     heading_medium_style,
     body_text_style,
-    caption_text_style, # Asegúrate de que esté importado para mensajes si se usan
+    caption_text_style,
     primary_button_style,
     text_button_style,
     text_input_style,
     page_background_style,
     PRIMARY_COLOR
 )
-from db import insert_user # Importamos la función para insertar usuarios
+from db import register_user
 
 def RegisterView(page: ft.Page):
     """
@@ -24,34 +25,38 @@ def RegisterView(page: ft.Page):
         **text_input_style(),
         width=300,
         prefix_icon=ft.Icons.PERSON,
-        autofocus=True, # Para que el primer campo tenga el foco al cargar
+        autofocus=True,
+        # REQUIRED REMOVED: Ya no se usa required=True/False aquí
     )
     lastname1_field = ft.TextField(
         label="Primer Apellido",
         **text_input_style(),
         width=300,
         prefix_icon=ft.Icons.PERSON_OUTLINE,
+        # REQUIRED REMOVED
     )
     lastname2_field = ft.TextField(
-        label="Segundo Apellido",
+        label="Segundo Apellido (Opcional)",
         **text_input_style(),
         width=300,
         prefix_icon=ft.Icons.PERSON_OUTLINE,
-        # Este campo podría ser opcional si el usuario lo desea
+        # REQUIRED REMOVED: Ya no se usa required=True/False aquí
     )
     username_field = ft.TextField(
         label="Nombre de Usuario",
         **text_input_style(),
         width=300,
         prefix_icon=ft.Icons.ACCOUNT_CIRCLE,
+        # REQUIRED REMOVED
     )
     phone_field = ft.TextField(
-        label="Teléfono",
+        label="Teléfono (Opcional)",
         **text_input_style(),
         width=300,
         input_filter=ft.InputFilter(allow=True, regex_string=r"[0-9]"), # Solo números
-        max_length=10, # Limitar longitud si se desea
+        max_length=15,
         prefix_icon=ft.Icons.PHONE,
+        # REQUIRED REMOVED: Ya no se usa required=True/False aquí
     )
     email_field = ft.TextField(
         label="Email",
@@ -59,6 +64,7 @@ def RegisterView(page: ft.Page):
         width=300,
         keyboard_type=ft.KeyboardType.EMAIL,
         prefix_icon=ft.Icons.EMAIL,
+        # REQUIRED REMOVED
     )
     password_field = ft.TextField(
         label="Contraseña",
@@ -67,6 +73,7 @@ def RegisterView(page: ft.Page):
         can_reveal_password=True,
         width=300,
         prefix_icon=ft.Icons.LOCK,
+        # REQUIRED REMOVED
     )
     confirm_password_field = ft.TextField(
         label="Confirmar Contraseña",
@@ -75,115 +82,104 @@ def RegisterView(page: ft.Page):
         can_reveal_password=True,
         width=300,
         prefix_icon=ft.Icons.LOCK_OUTLINE,
+        # REQUIRED REMOVED
     )
 
     # --- Función para manejar el registro ---
     def on_register_button_click(e):
-        # Reiniciar errores visuales
+        # Limpiar mensajes de error previos en los campos
         name_field.error_text = None
         lastname1_field.error_text = None
         username_field.error_text = None
         email_field.error_text = None
         password_field.error_text = None
         confirm_password_field.error_text = None
-        page.update()
-
-        # Validación de campos vacíos (obligatorios)
+        
+        # Validaciones de campos obligatorios y formato
         errors = False
         if not name_field.value:
-            name_field.error_text = "El nombre es obligatorio"
+            name_field.error_text = "El nombre es obligatorio."
             errors = True
         if not lastname1_field.value:
-            lastname1_field.error_text = "El primer apellido es obligatorio"
+            lastname1_field.error_text = "El primer apellido es obligatorio."
             errors = True
         if not username_field.value:
-            username_field.error_text = "El nombre de usuario es obligatorio"
+            username_field.error_text = "El nombre de usuario es obligatorio."
             errors = True
         if not email_field.value:
-            email_field.error_text = "El email es obligatorio"
+            email_field.error_text = "El email es obligatorio."
+            errors = True
+        elif "@" not in email_field.value or "." not in email_field.value:
+            email_field.error_text = "Formato de email inválido."
             errors = True
         if not password_field.value:
-            password_field.error_text = "La contraseña es obligatoria"
+            password_field.error_text = "La contraseña es obligatoria."
             errors = True
         if not confirm_password_field.value:
-            confirm_password_field.error_text = "Confirmar contraseña es obligatorio"
+            confirm_password_field.error_text = "Confirmar contraseña es obligatorio."
             errors = True
+        
+        if password_field.value != confirm_password_field.value:
+            password_field.error_text = "Las contraseñas no coinciden."
+            confirm_password_field.error_text = "Las contraseñas no coinciden."
+            errors = True
+        
+        # Actualizar la UI con los errores visuales antes de continuar
+        page.update()
 
         if errors:
             page.snack_bar = ft.SnackBar(
-                ft.Text("Por favor, rellena todos los campos obligatorios.", color=ft.Colors.WHITE),
-                bgcolor=ft.Colors.RED_700,
-            )
-            page.snack_bar.open = True
-            page.update()
-            return
-
-        # Validación de contraseñas
-        if password_field.value != confirm_password_field.value:
-            password_field.error_text = "Las contraseñas no coinciden"
-            confirm_password_field.error_text = "Las contraseñas no coinciden"
-            page.snack_bar = ft.SnackBar(
-                ft.Text("Las contraseñas no coinciden. Por favor, inténtalo de nuevo.", color=ft.Colors.WHITE),
+                ft.Text("Por favor, corrige los errores en el formulario.", color=ft.Colors.WHITE),
                 bgcolor=ft.Colors.RED_700,
             )
             page.snack_bar.open = True
             page.update()
             return
         
-        # Validación básica de email (podrías usar regex más compleja)
-        if "@" not in email_field.value or "." not in email_field.value:
-            email_field.error_text = "Formato de email inválido"
-            page.snack_bar = ft.SnackBar(
-                ft.Text("Por favor, ingresa un email válido.", color=ft.Colors.WHITE),
-                bgcolor=ft.Colors.RED_700,
-            )
-            page.snack_bar.open = True
-            page.update()
-            return
+        # Si no hay errores de validación de campos, procede a registrar
+        result = register_user(
+            name_field.value,
+            lastname1_field.value,
+            lastname2_field.value, # Pasa el valor, puede ser cadena vacía
+            username_field.value,
+            phone_field.value,     # Pasa el valor, puede ser cadena vacía
+            email_field.value,
+            password_field.value   # Pasa la contraseña en texto plano, la función register_user la hashea
+        )
 
-
-        # --- Lógica para guardar en la base de datos ---
-        # Por ahora, estamos guardando solo nombre y email en la tabla 'usuarios'.
-        # Puedes expandir la tabla 'usuarios' en db.py para guardar todos estos campos.
-        # Por ejemplo, puedes crear una tabla 'registros' con todos los campos.
-
-        # Adaptación para la tabla 'usuarios' actual:
-        # Aquí combinaremos nombre + apellido para el campo 'nombre' y usaremos 'email'.
-        # Idealmente, deberías modificar db.py y la tabla 'usuarios' para
-        # tener campos como 'nombre', 'apellido1', 'apellido2', 'username', 'telefono', etc.
-
-        # Si decides expandir la tabla 'usuarios' o crear una nueva tabla 'registros':
-        # En db.py, modifica init_db para crear la tabla con los campos necesarios.
-        # Y crea una nueva función en db.py como register_new_user(nombre, apellido1, ..., password_hashed).
-
-        # Usaremos la función insert_user actual para demostrar la conexión a la DB
-        # Esto es solo un ejemplo, la tabla actual solo tiene 'nombre' y 'email'
-        full_name = f"{name_field.value} {lastname1_field.value} {lastname2_field.value}".strip()
-        
-        # Hash de la contraseña antes de guardar (¡MUY IMPORTANTE PARA SEGURIDAD!)
-        # Para simplificar, no lo haremos aquí, pero DEBES usar un hashing robusto (ej. bcrypt)
-        # password_hashed = hash_password(password_field.value)
-        
-        success = insert_user(full_name, email_field.value) # Solo nombre y email por ahora en db.py
-
-        if success:
+        if result is True:
             page.snack_bar = ft.SnackBar(
                 ft.Text("Registro exitoso! Ya puedes iniciar sesión.", color=ft.Colors.WHITE),
                 bgcolor=ft.Colors.GREEN_700,
             )
             page.snack_bar.open = True
             page.update()
-            page.go("/login") # Ir al login después del registro exitoso
-        else:
-            # Esto se manejaría si el email ya existe (IntegrityError en db.py)
+            page.go("/login") # Redirige al login después de un registro exitoso
+        elif result == "email_exists":
+            email_field.error_text = "Este email ya está registrado."
             page.snack_bar = ft.SnackBar(
-                ft.Text("Error al registrar. El email podría ya estar en uso.", color=ft.Colors.WHITE),
+                ft.Text("Error: El email ya está registrado.", color=ft.Colors.WHITE),
+                bgcolor=ft.Colors.RED_700,
+            )
+            page.snack_bar.open = True
+            page.update()
+        elif result == "username_exists":
+            username_field.error_text = "Este nombre de usuario ya está en uso."
+            page.snack_bar = ft.SnackBar(
+                ft.Text("Error: El nombre de usuario ya existe.", color=ft.Colors.WHITE),
+                bgcolor=ft.Colors.RED_700,
+            )
+            page.snack_bar.open = True
+            page.update()
+        else: # Otros errores genéricos de DB
+            page.snack_bar = ft.SnackBar(
+                ft.Text("Error desconocido al registrar usuario. Inténtalo de nuevo.", color=ft.Colors.WHITE),
                 bgcolor=ft.Colors.RED_700,
             )
             page.snack_bar.open = True
             page.update()
         
-        # Limpiar campos después de un intento (exitoso o fallido de envío)
+        # Opcional: Limpiar campos del formulario después del intento de registro (si se desea)
         # name_field.value = ""
         # lastname1_field.value = ""
         # lastname2_field.value = ""
@@ -210,7 +206,7 @@ def RegisterView(page: ft.Page):
                     content=ft.Row(
                         [
                             ft.Text(
-                                "Registro de Usuario", # Título de la página de registro
+                                "Registro de Usuario",
                                 style=ft.TextStyle(
                                     size=18,
                                     weight=heading_medium_style().weight,
@@ -230,7 +226,7 @@ def RegisterView(page: ft.Page):
                     ft.Text("Crea tu cuenta", style=heading_large_style()),
                     ft.Text("Rellena el formulario para registrarte", style=body_text_style()),
                     ft.Divider(height=30),
-                    # Agrupamos los campos para mejor presentación si la pantalla es ancha
+                    # Usamos ResponsiveRow para mejor layout en diferentes tamaños de pantalla
                     ft.ResponsiveRow(
                         [
                             ft.Column([name_field], col={"sm": 12, "md": 6, "lg": 4}),
@@ -242,33 +238,34 @@ def RegisterView(page: ft.Page):
                             ft.Column([password_field], col={"sm": 12, "md": 6, "lg": 6}),
                             ft.Column([confirm_password_field], col={"sm": 12, "md": 6, "lg": 6}),
                         ],
-                        spacing=15, # Espacio entre columnas/filas
-                        run_spacing=15, # Espacio cuando los elementos saltan de línea
+                        spacing=15, # Espacio horizontal entre columnas
+                        run_spacing=15, # Espacio vertical cuando las columnas saltan de línea
+                        alignment=ft.MainAxisAlignment.CENTER # Centrar las columnas dentro de la fila
                     ),
                     ft.Divider(height=30),
                     ft.ElevatedButton(
                         "Registrarse",
                         style=primary_button_style(),
                         on_click=on_register_button_click,
-                        width=300 # Ocupa el ancho completo si es una sola columna
+                        width=300
                     ),
                     ft.TextButton(
                         content=ft.Text(
                             "¿Ya tienes una cuenta? Inicia sesión aquí.",
-                            color=PRIMARY_COLOR, # Un color diferente para el enlace de regreso
+                            color=PRIMARY_COLOR,
                             size=14,
                         ),
                         on_click=on_back_to_login_click,
                     ),
                 ],
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                alignment=ft.MainAxisAlignment.START, # Empieza desde arriba para ver todos los campos
+                alignment=ft.MainAxisAlignment.START,
                 spacing=15,
-                scroll=ft.ScrollMode.ADAPTIVE, # Permite scroll si hay muchos campos
+                scroll=ft.ScrollMode.ADAPTIVE,
                 expand=True,
             ),
         ],
         bgcolor=page_background_style()["bgcolor"],
-        vertical_alignment=ft.MainAxisAlignment.START, # Alineación superior para el contenido
+        vertical_alignment=ft.MainAxisAlignment.START,
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
     )

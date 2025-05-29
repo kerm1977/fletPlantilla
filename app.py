@@ -17,34 +17,28 @@ from styles import (
     ACCENT_COLOR,
     PRIMARY_COLOR
 )
-# --- ¡CAMBIO AQUÍ! Importamos la función de inicialización de la DB ---
-from db import init_db
+from db import init_db # Importamos la función de inicialización de la DB
 
-# --- ¡NUEVAS IMPORTACIONES DE VISTAS (asegúrate de que login.py y register.py existan)! ---
+# --- ¡IMPORTAMOS LAS VISTAS! ---
 from login import LoginView
-from register import RegisterView # Asegúrate de tener este archivo aunque sea un placeholder
+from register import RegisterView
 
 
 def main(page: ft.Page):
-    # --- ¡CAMBIO AQUÍ! Llamamos a init_db al inicio ---
-    init_db()
-    # ^^^ Esto asegurará que la base de datos y la tabla 'usuarios' se creen si no existen.
-    # Se ejecutará cada vez que inicie la aplicación, pero solo creará la tabla si no está.
+    init_db() # Aseguramos que la DB esté inicializada al inicio de la app
 
     page.title = "La Tribu App" # Título general de la ventana/tab
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     
     page.theme = app_theme()
-    # page.update() # No es necesario aquí si se llama al final o en route_change
-    
     page.bgcolor = page_background_style()["bgcolor"]
 
-    # --- Función para manejar el cambio de rutas ---
+    # --- Función para cambiar de vista basada en la ruta ---
     def route_change(route):
-        page.views.clear() # Limpia la pila de vistas
-
-        # Vista de inicio (Home)
+        page.views.clear() # Limpia las vistas actuales
+        
+        # Vista de inicio (Home) - Ruta: /
         if page.route == "/":
             page.views.append(
                 ft.View(
@@ -73,26 +67,26 @@ def main(page: ft.Page):
                                 alignment=ft.alignment.center_left,
                             ),
                             actions=[
-                                # --- ¡CAMBIO AQUÍ! Botón para ir al login ---
+                                # Botón para ir al login desde el Home
                                 ft.IconButton(
                                     icon=ft.Icons.LOGIN,
                                     tooltip="Ir a Iniciar Sesión",
                                     icon_color=ft.Colors.WHITE,
-                                    on_click=lambda e: page.go("/login"), # Navega a la ruta /login
+                                    on_click=lambda e: page.go("/login"),
                                 ),
                             ]
                         ),
-                        # Contenido de la página de inicio
+                        # Contenido de la página principal
                         ft.Column(
                             [
                                 ft.Text("¡Bienvenido a La Tribu!", style=heading_large_style()),
-                                ft.Text("Esta es la página de inicio.", style=body_text_style()),
-                                ft.Text("Presiona el icono de login en la AppBar para ir a Iniciar Sesión.", style=caption_text_style()),
+                                ft.Text("Esta es la página de inicio. Te has logueado con éxito.", style=body_text_style()),
+                                ft.Text("Aquí irá el contenido principal de tu aplicación.", style=caption_text_style()),
                             ],
-                            scroll=ft.ScrollMode.ADAPTIVE,
                             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                             alignment=ft.MainAxisAlignment.CENTER,
-                            expand=True
+                            spacing=15,
+                            expand=True,
                         )
                     ],
                     bgcolor=page_background_style()["bgcolor"],
@@ -100,27 +94,31 @@ def main(page: ft.Page):
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 )
             )
-        # Vista de Login
+        # Vista de Login - Ruta: /login
         elif page.route == "/login":
-            page.views.append(LoginView(page)) # Llama a la función LoginView de login.py
+            page.views.append(LoginView(page))
 
-        # Vista de Registro
+        # Vista de Registro - Ruta: /register
         elif page.route == "/register":
-            page.views.append(RegisterView(page)) # Llama a la función RegisterView de register.py
+            page.views.append(RegisterView(page))
 
-        page.update() # Muy importante para que los cambios se vean
+        page.update()
 
     # --- Función para manejar el cierre de vistas (navegación hacia atrás) ---
     def view_pop(view):
         page.views.pop() # Elimina la vista actual de la pila
-        top_view = page.views[-1] # Obtiene la vista anterior
-        page.go(top_view.route) # Navega a la ruta de la vista anterior
+        if page.views: # Asegura que hay vistas en la pila
+            top_view = page.views[-1] # Obtiene la vista anterior
+            page.go(top_view.route) # Navega a la ruta de la vista anterior
+        else: # Si no hay más vistas, cierra la aplicación o va a una vista predeterminada
+            page.go("/login") # Por ejemplo, si se cierra el home, vuelve al login
+
 
     page.on_route_change = route_change
-    page.on_view_pop = view_pop # Asigna la función para manejar el pop de vistas
+    page.on_view_pop = view_pop
 
-    # Inicia la aplicación en la ruta raíz (Home)
-    page.go("/")
+    # Inicia la aplicación en la ruta de login por defecto
+    page.go("/login")
 
 
 if __name__ == "__main__":
